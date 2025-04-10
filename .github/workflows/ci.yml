@@ -1,0 +1,40 @@
+name: CI Pipeline
+on: [push, pull_request]  # Se déclenche à chaque push ou PR
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      # Étape 1 : Récupérer le code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Étape 2 : Valider le HTML
+      - name: Validate HTML
+        run: |
+          sudo apt-get install -y tidy
+          tidy -q -e index.html
+
+      # Étape 3 : Vérifier le CSS avec Stylelint
+      - name: Lint CSS
+        uses: stylelint/[email protected]
+        with:
+          files: "**/*.css"
+
+      # Étape 4 : Tester le JS (optionnel)
+      - name: Test JS
+        run: |
+          npm install -g eslint
+          eslint assets/js/script.js
+
+  deploy:
+    needs: validate  # Attend que les tests passent
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'  # Seulement sur la branche main
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
